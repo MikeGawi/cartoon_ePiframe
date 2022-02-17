@@ -35,4 +35,4 @@ OR
 
 OR
 
-* In ePiframe WebUI (if enabled) under *Plugins - cartoonc-ePiframe*
+* In ePiframe WebUI (if enabled) under *Plugins - cartoon-ePiframe*
