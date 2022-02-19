@@ -36,7 +36,7 @@ class plugin(pluginbase):
 		out, err = process.communicate()
 		return out, err 
 	
-	def preprocess_photo (self, orgphoto, is_horizontal, convertmgr):
+	def preprocess_photo (self, orgphoto, is_horizontal, convertmgr, photo, idlabel, creationlabel, sourcelabel):
 		#formatting the conversion code
 		#notice that image will be converted to target display size as this will speed up the processing 
 		code = self.__CONVERT_CODE.format(self.globalconfig.get('convert_bin_path'), orgphoto, self.globalconfig.getint('image_width'), self.globalconfig.getint('image_height'), self.config.get('edges_width'), self.config.get('edges_strength'), orgphoto)
