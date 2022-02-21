@@ -9,7 +9,7 @@ class plugin(pluginbase):
 	name = 'Cartoon'
 	author = 'MikeGawi'
 	description = 'Photo cartoon-like style preprocessing'
-	site = 'https://github.com/MikeGawi/Cartoon-ePiframe'
+	site = 'https://github.com/MikeGawi/Cartoon_ePiframe'
 	info = 'Based on a great work of http://www.fmwconcepts.com/imagemagick'
 	
 	#ImageMagick convert code template
