@@ -8,6 +8,16 @@ This plugin has been created with [ePiframe_plugin](https://github.com/MikeGawi/
 
 Based on a great work of [Fred's ImageMagick Scripts](http://www.fmwconcepts.com/imagemagick)
 
+## Requirements
+
+* [ePiframe](https://github.com/MikeGawi/ePiframe) 2.0 or newer (Plugin API v2). For ePiframe 1.x use the version
+  of this plugin from before ePiframe 2.0.
+
+## How it works
+
+* The effect is made with ImageMagick on the photo scaled down to the display size; on a Raspberry Pi Zero it takes a few seconds per photo.
+* Settings: `edges_width` (how much the edges are enhanced) and `edges_strength`.
+
 ## Installation
 
 On working ePiframe:
@@ -35,4 +45,9 @@ OR
 
 OR
 
-* In ePiframe WebUI (if enabled) under *Plugins - cartoon_ePiframe*
+* In ePiframe WebUI (if enabled) under *Plugins - Cartoon*
+
+Check the configuration with `./ePiframe.py --check-config` (in the ePiframe folder).
+
+The plugin folder name must stay a valid Python name (letters, digits, `_`), e.g. `cartoon_ePiframe`: ePiframe
+skips plugins in folders with dashes or dots.

@@ -1,87 +1,81 @@
-from modules.base.pluginbase import PluginBase
-from modules.base.configbase import ConfigBase
-from misc.configproperty import ConfigProperty
-from misc.logs import Logs
-from modules.pidmanager import PIDManager
-from modules.convertmanager import ConvertManager
-import subprocess
+"""Cartoon_ePiframe: cartoon-like style of the photo (ePiframe Plugin API v2).
+
+The photo is processed by ImageMagick before ePiframe converts it for the
+display (``preprocess_photo``). Based on the cartoon script of Fred's ImageMagick
+Scripts: http://www.fmwconcepts.com/imagemagick
+"""
+
+from pathlib import Path
+
+from epiframe.config.property import ConfigProperty, PropertyType
+from epiframe.plugins.base import PhotoFile
+from epiframe.plugins.base import Plugin as PluginBase
+
+
+def cartoon_arguments(
+    photo: Path, width: int, height: int, edges_width: int, edges_strength: int
+) -> list[str]:
+    """ImageMagick ``convert`` arguments turning ``photo`` into a cartoon in place.
+
+    The photo is scaled down to the display size first: the effect is slow on a
+    Raspberry Pi and the display can't show more detail anyway.
+    """
+    return [
+        str(photo),
+        "-resize",
+        f"{width}x{height}",
+        # posterized colors: lightness channel separated in HCL
+        "(", "-clone", "0", "-colorspace", "HCL", "-separate", "+channel", ")",
+        "(", "-clone", "3", ")",
+        "(", "-clone", "1", "-clone", "2", "-clone", "4",
+        "-set", "colorspace", "HCL", "-combine", "-colorspace", "sRGB",
+        "-define", "modulate:colorspace=hcl", ")",
+        "-delete", "1-4",
+        # edges: difference of the gray image and its sharpened copy
+        "(", "-clone", "0", "-set", "colorspace", "RGB", "-colorspace", "gray", ")",
+        "(", "-clone", "2", "-unsharp", f"0x{edges_width}", ")",
+        "(", "-clone", "2", "-clone", "3", "+swap", "-compose", "minus",
+        "-composite", "-evaluate", "multiply", str(edges_strength), "-negate", ")",
+        "-delete", "0,2,3",
+        "-compose", "multiply", "-composite",
+        str(photo),
+    ]  # fmt: skip
 
 
 class Plugin(PluginBase):
     name = "Cartoon"
     author = "MikeGawi"
     description = "Photo cartoon-like style preprocessing"
-    site = "https://github.com/MikeGawi/Cartoon_ePiframe"
+    site = "https://github.com/MikeGawi/cartoon_ePiframe"
     info = "Based on a great work of http://www.fmwconcepts.com/imagemagick"
 
-    # ImageMagick convert code template
-    __CONVERT_CODE = "{} {} -resize {}x{} ( -clone 0 -colorspace HCL -separate +channel ) ( -clone 3 ) ( -clone 1 -clone 2 -clone 4 -set colorspace HCL -combine -colorspace sRGB -define modulate:colorspace=hcl ) -delete 1-4 ( -clone 0 -set colorspace RGB -colorspace gray ) ( -clone 2 -unsharp 0x{} ) ( -clone 2 -clone 3 +swap -compose minus -composite -evaluate multiply {} -negate ) -delete 0,2,3 -compose multiply -composite {}"
+    def settings(self) -> list[ConfigProperty]:
+        # the entries of config.cfg / default/config.default with their validation
+        return [
+            *super().settings(),  # is_enabled
+            ConfigProperty(
+                "edges_width",
+                PropertyType.INTEGER,
+                dependency="is_enabled",
+                min_value=1,
+            ),
+            ConfigProperty(
+                "edges_strength",
+                PropertyType.INTEGER,
+                dependency="is_enabled",
+                min_value=1,
+            ),
+        ]
 
-    class PluginConfigManager(ConfigBase):
-        # building settings according to config.default file
-        def load_settings(self):
-            self.SETTINGS = [
-                ConfigProperty(
-                    "is_enabled", self, prop_type=ConfigProperty.BOOLEAN_TYPE
-                ),
-                ConfigProperty(
-                    "edges_width",
-                    self,
-                    dependency="is_enabled",
-                    minvalue=1,
-                    prop_type=ConfigProperty.INTEGER_TYPE,
-                ),
-                ConfigProperty(
-                    "edges_strength",
-                    self,
-                    dependency="is_enabled",
-                    minvalue=1,
-                    prop_type=ConfigProperty.INTEGER_TYPE,
-                ),
-            ]
-
-    def __init__(
-        self,
-        path: str,
-        pid_manager: PIDManager,
-        logging: Logs,
-        global_config: ConfigBase,
-    ):
-        super().__init__(
-            path, pid_manager, logging, global_config
-        )  # default constructor
-
-    @staticmethod
-    def __subproc(arguments):
-        # method to start process with arguments.
-        # it needs a list of arguments
-        argument = arguments.split()
-        process = subprocess.Popen(argument, stdout=subprocess.PIPE)
-        process.wait()
-        out, error = process.communicate()
-        return out, error
-
-    def preprocess_photo(
-        self,
-        original_photo: str,
-        is_horizontal: bool,
-        convert_manager: ConvertManager,
-        photo,
-        id_label: str,
-        creation_label: str,
-        source_label: str,
-    ):
-        # formatting the conversion code
-        # notice that image will be converted to target display size as this will speed up the processing
-        code = self.__CONVERT_CODE.format(
-            self.global_config.get("convert_bin_path"),
-            original_photo,
-            self.global_config.getint("image_width"),
-            self.global_config.getint("image_height"),
-            self.config.get("edges_width"),
-            self.config.get("edges_strength"),
-            original_photo,
+    def preprocess_photo(self, photo: PhotoFile) -> None:
+        # photo.image_magick raises ImageMagickError (with ImageMagick's message)
+        # when the conversion fails; ePiframe logs it
+        photo.image_magick.run(
+            cartoon_arguments(
+                photo.path,
+                photo.width,
+                photo.height,
+                self.config.getint("edges_width"),
+                self.config.getint("edges_strength"),
+            )
         )
-        out, error = self.__subproc(code)
-        if error:
-            raise Exception(error)  # raise if error
