@@ -41,7 +41,7 @@ OR
 
 ## Configuration
 
-* Configure with the file [*config.cfg*](https://github.com/MikeGawi/cartoon_ePiframe/blob/master/config.cfg) inside *ePiframe_path/plugins/cartoon-ePiframe*
+* Configure with the file [*config.cfg*](https://github.com/MikeGawi/cartoon_ePiframe/blob/master/config.cfg) inside *ePiframe_path/plugins/cartoon_ePiframe*
 
 OR
 
